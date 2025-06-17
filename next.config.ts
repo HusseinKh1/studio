@@ -14,9 +14,14 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'placehold.co',
         port: '',
-        pathname: '/**',
+        pathname: '/**', // Allow any path for placehold.co
       },
     ],
+  },
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NODE_ENV === 'production' 
+      ? 'https://your-production-api-url.com/api' // Replace with your actual production API
+      : 'https://localhost:7280/api',
   },
 };
 
