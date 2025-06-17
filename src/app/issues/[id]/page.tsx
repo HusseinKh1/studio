@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { getIssueById, getResponsesByIssueId, updateIssueStatus, addResponse, updateResponse as apiUpdateResponse, deleteResponse as apiDeleteResponse, AuthError } from '@/lib/api-service';
-import type { RoadSurfaceIssueDto, PublicUtilityResponseDto, IssueStatus, PublicUtilityResponseRequest } from '@/types/api';
+import type { RoadSurfaceIssueDto, PublicUtilityResponseDto, PublicUtilityResponseRequest } from '@/types/api';
+import { IssueStatus } from '@/types/api'; // Changed: IssueStatus imported as a value
 import ProtectedRoute from '@/components/auth/protected-route';
 import ResponseCard from '@/components/response-card';
 import { Button } from '@/components/ui/button';
@@ -32,9 +33,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
-    case 'Reported': return "destructive";
-    case 'InProgress': return "secondary";
-    case 'Resolved': return "default";
+    case IssueStatus.Reported: return "destructive";
+    case IssueStatus.InProgress: return "secondary";
+    case IssueStatus.Resolved: return "default";
     default: return "outline";
   }
 };
