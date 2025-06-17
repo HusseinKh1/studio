@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { getAllIssues, deleteIssue as apiDeleteIssue, updateIssueStatus, AuthError } from '@/lib/api-service';
-import type { RoadSurfaceIssueDto, IssueStatus } from '@/types/api';
+import type { RoadSurfaceIssueDto } from '@/types/api'; // Keep existing type import
+import { IssueStatus } from '@/types/api'; // Add import for IssueStatus enum
 import ProtectedRoute from '@/components/auth/protected-route';
 import { Loader2, AlertTriangle, Edit, Trash2, Eye, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,9 +30,9 @@ import { Label } from '@/components/ui/label';
 
 const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
-    case 'Reported': return "destructive";
-    case 'InProgress': return "secondary";
-    case 'Resolved': return "default";
+    case IssueStatus.Reported: return "destructive";
+    case IssueStatus.InProgress: return "secondary";
+    case IssueStatus.Resolved: return "default";
     default: return "outline";
   }
 };
