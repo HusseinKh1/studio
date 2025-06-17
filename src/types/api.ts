@@ -62,6 +62,7 @@ export interface RoadSurfaceIssueRequest {
   description: string;
   location: string;
   reportedByUserId: string;
+  status?: IssueStatus; // Added optional status
 }
 
 export interface PublicUtilityResponseRequest {

@@ -130,7 +130,7 @@ export const updateIssue = (id: string, data: Partial<RoadSurfaceIssueRequest>):
   fetchApi<void>(`/roadsurfaceissue/${id}`, { method: 'PUT', body: JSON.stringify(data) });
   
 export const updateIssueStatus = (id: string, status: IssueStatus): Promise<void> => 
-  fetchApi<void>(`/roadsurfaceissue/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+  updateIssue(id, { status }); // Changed to use the general updateIssue endpoint
 
 
 export const deleteIssue = (id: string): Promise<void> =>
@@ -151,4 +151,3 @@ export const updateResponse = (id: string, data: PublicUtilityResponseRequest): 
 
 export const deleteResponse = (id: string): Promise<void> =>
   fetchApi<void>(`/publicutility/${id}`, { method: 'DELETE' });
-
