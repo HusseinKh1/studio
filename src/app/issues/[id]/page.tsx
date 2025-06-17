@@ -1,9 +1,9 @@
 
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { getIssueById, getResponsesByIssueId, updateIssueStatus, addResponse, updateResponse as apiUpdateResponse, deleteResponse as apiDeleteResponse } from '@/lib/api-service';
+import { getIssueById, getResponsesByIssueId, updateIssueStatus, addResponse, updateResponse as apiUpdateResponse, deleteResponse as apiDeleteResponse, AuthError } from '@/lib/api-service';
 import type { RoadSurfaceIssueDto, PublicUtilityResponseDto, IssueStatus, PublicUtilityResponseRequest } from '@/types/api';
 import ProtectedRoute from '@/components/auth/protected-route';
 import ResponseCard from '@/components/response-card';
@@ -31,7 +31,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 
 const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destructive" | "outline" => {
-  // Consistent with IssueCard
   switch (status) {
     case 'Reported': return "destructive";
     case 'InProgress': return "secondary";
@@ -44,7 +43,7 @@ const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destr
 function IssueDetailPageContent() {
   const params = useParams();
   const id = params.id as string;
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -61,28 +60,42 @@ function IssueDetailPageContent() {
   const [showEditResponseDialog, setShowEditResponseDialog] = useState(false);
 
 
-  const fetchIssueData = async () => {
+  const fetchIssueData = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
     setError(null);
     try {
       const [issueData, responsesData] = await Promise.all([
         getIssueById(id),
-        getResponsesByIssueId(id).catch(() => []), // Gracefully handle no responses
+        getResponsesByIssueId(id).catch(() => []), 
       ]);
       setIssue(issueData);
       setResponses(responsesData);
     } catch (err: any) {
       console.error("Failed to fetch issue details:", err);
-      setError(err.message || "Could not load issue details.");
+      if (err instanceof AuthError) {
+        toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
+        logout();
+      } else {
+        setError(err.message || "Could not load issue details.");
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id, logout, toast]);
   
   useEffect(() => {
     fetchIssueData();
-  }, [id]);
+  }, [fetchIssueData]);
+
+  const handleAuthError = useCallback((err: any) => {
+    if (err instanceof AuthError) {
+      toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
+      logout();
+      return true;
+    }
+    return false;
+  }, [logout, toast]);
 
   const handleStatusChange = async (newStatus: IssueStatus) => {
     if (!issue) return;
@@ -91,7 +104,9 @@ function IssueDetailPageContent() {
       setIssue({ ...issue, status: newStatus });
       toast({ title: "Status Updated", description: `Issue status changed to ${newStatus}.` });
     } catch (err: any) {
-      toast({ title: "Update Failed", description: err.message || "Could not update status.", variant: "destructive" });
+      if (!handleAuthError(err)) {
+        toast({ title: "Update Failed", description: err.message || "Could not update status.", variant: "destructive" });
+      }
     }
   };
 
@@ -106,7 +121,9 @@ function IssueDetailPageContent() {
       setShowAddResponseDialog(false);
       toast({ title: "Response Added", description: "Public utility response has been recorded." });
     } catch (err: any) {
-      toast({ title: "Failed to Add Response", description: err.message, variant: "destructive" });
+      if (!handleAuthError(err)) {
+        toast({ title: "Failed to Add Response", description: err.message, variant: "destructive" });
+      }
     } finally {
       setIsSubmittingResponse(false);
     }
@@ -128,8 +145,10 @@ function IssueDetailPageContent() {
       setShowEditResponseDialog(false);
       setEditingResponse(null);
       toast({title: "Response Updated"});
-    } catch (error: any) {
-       toast({title: "Failed to Update Response", description: error.message, variant: "destructive"});
+    } catch (err: any) {
+       if (!handleAuthError(err)) {
+        toast({title: "Failed to Update Response", description: err.message, variant: "destructive"});
+       }
     } finally {
       setIsSubmittingResponse(false);
     }
@@ -140,8 +159,10 @@ function IssueDetailPageContent() {
       await apiDeleteResponse(responseId);
       setResponses(prev => prev.filter(r => r.id !== responseId));
       toast({title: "Response Deleted"});
-    } catch (error: any) {
-       toast({title: "Failed to Delete Response", description: error.message, variant: "destructive"});
+    } catch (err: any) {
+       if (!handleAuthError(err)) {
+        toast({title: "Failed to Delete Response", description: err.message, variant: "destructive"});
+       }
     }
   }
 
@@ -150,7 +171,7 @@ function IssueDetailPageContent() {
     return <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
   if (error) {
-    return <div className="container mx-auto px-4 py-8 text-center"><AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" /><h2 className="text-xl font-semibold text-destructive mb-2">Error</h2><p className="text-muted-foreground">{error}</p></div>;
+    return <div className="container mx-auto px-4 py-8 text-center"><AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" /><h2 className="text-xl font-semibold text-destructive mb-2">Error</h2><p className="text-muted-foreground">{error}</p><Button onClick={fetchIssueData}>Try Again</Button></div>;
   }
   if (!issue) {
     return <div className="container mx-auto px-4 py-8 text-center"><h2 className="text-xl">Issue not found.</h2></div>;
@@ -224,10 +245,8 @@ function IssueDetailPageContent() {
           <ResponseCard 
             key={response.id} 
             response={response} 
-            onEdit={isAdmin() ? handleEditResponse : undefined}
-            onDelete={isAdmin() ? (responseId) => {
-                 // Confirmation Dialog for Delete
-                return (
+            onEdit={isAdmin() ? () => handleEditResponse(response) : undefined}
+            onDelete={isAdmin() ? (responseId) => (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
@@ -243,8 +262,7 @@ function IssueDetailPageContent() {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                );
-            } : undefined}
+            ) : undefined}
           />
         ))
       ) : (

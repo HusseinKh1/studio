@@ -2,16 +2,18 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { getIssuesByUserId } from '@/lib/api-service';
+import { getIssuesByUserId, AuthError } from '@/lib/api-service';
 import type { RoadSurfaceIssueDto } from '@/types/api';
 import IssueCard from '@/components/issue-card';
 import ProtectedRoute from '@/components/auth/protected-route';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 function MyIssuesPageContent() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
   const [issues, setIssues] = useState<RoadSurfaceIssueDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,14 +28,23 @@ function MyIssuesPageContent() {
           setIssues(userIssues);
         } catch (err: any) {
           console.error("Failed to fetch user issues:", err);
-          setError(err.message || "Could not load your reported issues.");
+          if (err instanceof AuthError) {
+            toast({
+              title: "Session Expired",
+              description: "Your session may have expired. Please log in again.",
+              variant: "destructive",
+            });
+            logout(); // AuthContext handles redirect
+          } else {
+            setError(err.message || "Could not load your reported issues.");
+          }
         } finally {
           setIsLoading(false);
         }
       };
       fetchIssues();
     }
-  }, [user?.id]);
+  }, [user?.id, logout, toast]);
 
   if (isLoading) {
     return (
@@ -49,7 +60,35 @@ function MyIssuesPageContent() {
         <AlertTriangle className="mx-auto h-12 w-12 text-destructive mb-4" />
         <h2 className="text-xl font-semibold text-destructive mb-2">Error Loading Issues</h2>
         <p className="text-muted-foreground mb-6">{error}</p>
-        <Button onClick={() => window.location.reload()}>Try Again</Button>
+        <Button onClick={() => {
+            if (user?.id) { // Re-trigger fetch explicitly
+                const fetchIssuesAgain = async () => {
+                    setIsLoading(true);
+                    setError(null);
+                    try {
+                        const userIssues = await getIssuesByUserId(user.id);
+                        setIssues(userIssues);
+                    } catch (err: any) {
+                        console.error("Failed to fetch user issues:", err);
+                        if (err instanceof AuthError) {
+                            toast({
+                                title: "Session Expired",
+                                description: "Your session may have expired. Please log in again.",
+                                variant: "destructive",
+                            });
+                            logout();
+                        } else {
+                            setError(err.message || "Could not load your reported issues.");
+                        }
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+                fetchIssuesAgain();
+            } else {
+                logout(); // If no user id, likely session is fully gone.
+            }
+        }}>Try Again</Button>
       </div>
     );
   }

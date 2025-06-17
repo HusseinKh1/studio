@@ -1,8 +1,8 @@
 
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { getAllIssues, deleteIssue as apiDeleteIssue, updateIssueStatus } from '@/lib/api-service';
+import { getAllIssues, deleteIssue as apiDeleteIssue, updateIssueStatus, AuthError } from '@/lib/api-service';
 import type { RoadSurfaceIssueDto, IssueStatus } from '@/types/api';
 import ProtectedRoute from '@/components/auth/protected-route';
 import { Loader2, AlertTriangle, Edit, Trash2, Eye, Filter } from 'lucide-react';
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
@@ -41,10 +42,11 @@ function AdminDashboardPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { logout } = useAuth();
   const [statusFilter, setStatusFilter] = useState<IssueStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -52,15 +54,20 @@ function AdminDashboardPageContent() {
       setIssues(allIssues);
     } catch (err: any) {
       console.error("Failed to fetch issues:", err);
-      setError(err.message || "Could not load issues.");
+      if (err instanceof AuthError) {
+        toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
+        logout();
+      } else {
+        setError(err.message || "Could not load issues.");
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [logout, toast]);
 
   useEffect(() => {
     fetchIssues();
-  }, []);
+  }, [fetchIssues]);
 
   useEffect(() => {
     let currentIssues = issues;
@@ -81,9 +88,14 @@ function AdminDashboardPageContent() {
     try {
       await apiDeleteIssue(issueId);
       toast({ title: "Issue Deleted", description: "The issue has been successfully deleted." });
-      fetchIssues(); // Re-fetch issues to update the list
+      fetchIssues(); 
     } catch (err: any) {
-      toast({ title: "Deletion Failed", description: err.message || "Could not delete the issue.", variant: "destructive" });
+      if (err instanceof AuthError) {
+        toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
+        logout();
+      } else {
+        toast({ title: "Deletion Failed", description: err.message || "Could not delete the issue.", variant: "destructive" });
+      }
     }
   };
   
@@ -91,9 +103,14 @@ function AdminDashboardPageContent() {
     try {
         await updateIssueStatus(issueId, newStatus);
         toast({ title: "Status Updated", description: `Issue status changed to ${newStatus}.` });
-        fetchIssues(); // Re-fetch to reflect changes
+        fetchIssues(); 
     } catch (err: any) {
-        toast({ title: "Update Failed", description: err.message || "Could not update status.", variant: "destructive" });
+        if (err instanceof AuthError) {
+          toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
+          logout();
+        } else {
+          toast({ title: "Update Failed", description: err.message || "Could not update status.", variant: "destructive" });
+        }
     }
   };
 
@@ -169,16 +186,12 @@ function AdminDashboardPageContent() {
                         </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell>{format(parseISO(issue.reportedDate), "PP")}</TableCell>
-                  <TableCell>{issue.reportedByUser?.userName || issue.reportedByUserId.substring(0,8)}</TableCell>
+                  <TableCell>{issue.reportedDate ? format(parseISO(issue.reportedDate), "PP") : "N/A"}</TableCell>
+                  <TableCell>{issue.reportedByUser?.userName || (issue.reportedByUserId ? issue.reportedByUserId.substring(0,8) : 'N/A')}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" asChild title="View Issue">
                       <Link href={`/issues/${issue.id}`}><Eye className="h-4 w-4" /></Link>
                     </Button>
-                    {/* Edit functionality might be on detail page or a separate admin edit page */}
-                    {/* <Button variant="ghost" size="icon" asChild title="Edit Issue (Not Implemented)">
-                      <Link href={`/admin/issues/${issue.id}/edit`}><Edit className="h-4 w-4" /></Link>
-                    </Button> */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" title="Delete Issue" className="text-destructive hover:text-destructive/80">
