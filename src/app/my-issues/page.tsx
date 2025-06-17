@@ -27,15 +27,15 @@ function MyIssuesPageContent() {
           const userIssues = await getIssuesByUserId(user.id);
           setIssues(userIssues);
         } catch (err: any) {
-          console.error("Failed to fetch user issues:", err);
           if (err instanceof AuthError) {
             toast({
               title: "Session Expired",
               description: "Your session may have expired. Please log in again.",
               variant: "destructive",
             });
-            logout(); // AuthContext handles redirect
+            logout(); 
           } else {
+            console.error("Failed to fetch user issues:", err);
             setError(err.message || "Could not load your reported issues.");
           }
         } finally {
@@ -61,7 +61,7 @@ function MyIssuesPageContent() {
         <h2 className="text-xl font-semibold text-destructive mb-2">Error Loading Issues</h2>
         <p className="text-muted-foreground mb-6">{error}</p>
         <Button onClick={() => {
-            if (user?.id) { // Re-trigger fetch explicitly
+            if (user?.id) { 
                 const fetchIssuesAgain = async () => {
                     setIsLoading(true);
                     setError(null);
@@ -69,7 +69,6 @@ function MyIssuesPageContent() {
                         const userIssues = await getIssuesByUserId(user.id);
                         setIssues(userIssues);
                     } catch (err: any) {
-                        console.error("Failed to fetch user issues:", err);
                         if (err instanceof AuthError) {
                             toast({
                                 title: "Session Expired",
@@ -78,7 +77,8 @@ function MyIssuesPageContent() {
                             });
                             logout();
                         } else {
-                            setError(err.message || "Could not load your reported issues.");
+                           console.error("Failed to fetch user issues on retry:", err);
+                           setError(err.message || "Could not load your reported issues.");
                         }
                     } finally {
                         setIsLoading(false);
@@ -86,7 +86,7 @@ function MyIssuesPageContent() {
                 };
                 fetchIssuesAgain();
             } else {
-                logout(); // If no user id, likely session is fully gone.
+                logout(); 
             }
         }}>Try Again</Button>
       </div>
@@ -125,3 +125,4 @@ export default function MyIssuesPage() {
     </ProtectedRoute>
   );
 }
+

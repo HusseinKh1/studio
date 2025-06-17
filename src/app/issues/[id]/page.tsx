@@ -68,16 +68,16 @@ function IssueDetailPageContent() {
     try {
       const [issueData, responsesData] = await Promise.all([
         getIssueById(id),
-        getResponsesByIssueId(id), // Removed .catch(() => []) to allow AuthError to propagate
+        getResponsesByIssueId(id),
       ]);
       setIssue(issueData);
       setResponses(responsesData);
     } catch (err: any) {
-      console.error("Failed to fetch issue details:", err);
       if (err instanceof AuthError) {
         toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
         logout();
       } else {
+        console.error("Failed to fetch issue details:", err);
         setError(err.message || "Could not load issue details.");
       }
     } finally {
@@ -309,3 +309,4 @@ export default function IssueDetailPage() {
     </ProtectedRoute>
   );
 }
+

@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { getAllIssues, deleteIssue as apiDeleteIssue, updateIssueStatus, AuthError } from '@/lib/api-service';
-import type { RoadSurfaceIssueDto } from '@/types/api'; // Keep existing type import
-import { IssueStatus } from '@/types/api'; // Add import for IssueStatus enum
+import type { RoadSurfaceIssueDto } from '@/types/api'; 
+import { IssueStatus } from '@/types/api';
 import ProtectedRoute from '@/components/auth/protected-route';
 import { Loader2, AlertTriangle, Edit, Trash2, Eye, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,11 +54,11 @@ function AdminDashboardPageContent() {
       const allIssues = await getAllIssues();
       setIssues(allIssues);
     } catch (err: any) {
-      console.error("Failed to fetch issues:", err);
       if (err instanceof AuthError) {
         toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
         logout();
       } else {
+        console.error("Failed to fetch issues:", err);
         setError(err.message || "Could not load issues.");
       }
     } finally {
@@ -233,3 +233,4 @@ export default function AdminDashboardPage() {
     </ProtectedRoute>
   );
 }
+
