@@ -23,15 +23,14 @@ function extractErrorMessage(data: any, defaultMessage: string): string {
   if (!data) return defaultMessage;
   if (typeof data === 'string') return data;
   if (data && typeof data.message === 'string' && data.message.trim() !== "") return data.message;
-  if (data && typeof data.Message === 'string' && data.Message.trim() !== "") return data.Message; // ASP.NET Core sometimes uses uppercase M
+  if (data && typeof data.Message === 'string' && data.Message.trim() !== "") return data.Message; 
   if (data && typeof data.detail === 'string' && data.detail.trim() !== "") return data.detail;
   if (data && Array.isArray(data.errors) && data.errors.length > 0) {
     const firstError = data.errors[0];
     if (typeof firstError === 'string' && firstError.trim() !== "") return firstError;
     if (typeof firstError?.message === 'string' && firstError.message.trim() !== "") return firstError.message;
-    if (typeof firstError?.msg === 'string' && firstError.msg.trim() !== "") return firstError.msg; // Common in some validation libraries
+    if (typeof firstError?.msg === 'string' && firstError.msg.trim() !== "") return firstError.msg;
   }
-  // Check for ASP.NET Core validation problem details
   if (data && typeof data.title === 'string' && data.title.trim() !== "" && data.errors && typeof data.errors === 'object') {
     const errorKeys = Object.keys(data.errors);
     if (errorKeys.length > 0 && Array.isArray(data.errors[errorKeys[0]]) && data.errors[errorKeys[0]].length > 0) {
@@ -68,17 +67,19 @@ async function fetchApi<T>(
       try {
         errorData = await response.json();
       } catch (e) {
-        // If JSON parsing fails, but content type was JSON, it's an issue.
-        // Fallback to statusText.
         errorData = { messageFromCatch: response.statusText || `Failed to parse JSON error response for status ${response.status}` };
       }
     } else {
-      // If not JSON, use statusText or a generic message.
       const textResponse = await response.text().catch(() => null);
       errorData = { messageFromNonJson: textResponse || response.statusText || `Non-JSON error response with status ${response.status}` };
     }
     
     console.error('API Error:', response.status, errorData || "<No error data parsed>");
+    
+    // Specific handling for 404 on getIssuesByUserId: return empty array as it's a valid "not found" scenario for user's issues.
+    if (response.status === 404 && endpoint.startsWith('/roadsurfaceissue/user/')) {
+      return [] as T; 
+    }
 
     const defaultApiErrorMsg = `API request failed with status ${response.status}`;
     const extractedMsg = extractErrorMessage(errorData, defaultApiErrorMsg);
@@ -90,17 +91,15 @@ async function fetchApi<T>(
     throw new Error(extractedMsg);
   }
   
-  if (response.status === 204) { // No Content
+  if (response.status === 204) { 
     return null as T;
   }
 
-  // Check if response is actually JSON before parsing, to prevent errors with empty/non-JSON 2xx responses
   const contentType = response.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
     return response.json();
   }
-  // For 2xx responses that are not JSON (e.g. plain text or empty)
-  return response.text().then(text => text as unknown as T); // Or handle as appropriate for non-JSON success
+  return response.text().then(text => text as unknown as T);
 }
 
 // Auth Endpoints
@@ -151,3 +150,4 @@ export const updateResponse = (id: string, data: PublicUtilityResponseRequest): 
 
 export const deleteResponse = (id: string): Promise<void> =>
   fetchApi<void>(`/publicutility/${id}`, { method: 'DELETE' });
+
