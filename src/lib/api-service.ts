@@ -61,6 +61,12 @@ async function fetchApi<T>(
   });
 
   if (!response.ok) {
+    // Specific handling for 404 on getIssuesByUserId: return empty array as it's a valid "not found" scenario for user's issues.
+    // This check is now BEFORE general error parsing and logging for this specific case.
+    if (response.status === 404 && endpoint.startsWith('/roadsurfaceissue/user/')) {
+      return [] as T; 
+    }
+
     let errorData: any = null;
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
@@ -76,11 +82,6 @@ async function fetchApi<T>(
     
     console.error('API Error:', response.status, errorData || "<No error data parsed>");
     
-    // Specific handling for 404 on getIssuesByUserId: return empty array as it's a valid "not found" scenario for user's issues.
-    if (response.status === 404 && endpoint.startsWith('/roadsurfaceissue/user/')) {
-      return [] as T; 
-    }
-
     const defaultApiErrorMsg = `API request failed with status ${response.status}`;
     const extractedMsg = extractErrorMessage(errorData, defaultApiErrorMsg);
 
