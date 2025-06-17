@@ -1,6 +1,7 @@
 
 "use client";
-import type { RoadSurfaceIssueDto, IssueStatus } from '@/types/api';
+import type { RoadSurfaceIssueDto } from '@/types/api';
+import { IssueStatus } from '@/types/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,3 +71,4 @@ export default function IssueCard({ issue }: IssueCardProps) {
     </Card>
   );
 }
+
