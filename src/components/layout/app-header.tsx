@@ -89,7 +89,7 @@ export default function AppHeader() {
             </>
           ) : (
             <>
-              <Button variant="outline" size="sm" asChild className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
+              <Button variant="outline" size="sm" asChild className="bg-transparent border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
                 <Link href="/login"><LogIn className="mr-1 h-4 w-4" /> Login</Link>
               </Button>
               <Button variant="default" size="sm" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">

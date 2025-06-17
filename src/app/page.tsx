@@ -100,7 +100,7 @@ export default function HomePage() {
                 <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
                   <Link href="/register">Get Started <ArrowRight className="ml-2 h-5 w-5" /></Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
+                <Button size="lg" variant="outline" asChild className="bg-transparent border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
                   <Link href="/login">Login</Link>
                 </Button>
               </div>
