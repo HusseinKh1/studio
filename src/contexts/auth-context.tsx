@@ -37,32 +37,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
+    setIsLoading(true);
     const storedToken = localStorage.getItem('accessToken');
     if (storedToken) {
       try {
         const decodedToken = jwtDecode<DecodedToken>(storedToken);
         if (decodedToken.exp * 1000 > Date.now()) {
           setToken(storedToken);
-          // The actual AppUser details (firstName, lastName, address) are not in the basic token.
-          // For a full AppUser object, you'd typically make an API call to /users/me or similar.
-          // Here, we'll construct a partial user from the token.
-           setUser({
+          setUser({
             id: decodedToken.nameid,
             email: decodedToken.email,
             role: decodedToken.role,
             userName: decodedToken.unique_name,
-            // These fields would need to be fetched or aren't available in a standard JWT
-            firstName: decodedToken.unique_name, // Placeholder
-            lastName: '', // Placeholder
-            address: '', // Placeholder
+            firstName: decodedToken.unique_name, 
+            lastName: '', 
+            address: '', 
           });
         } else {
+          // Token expired
           localStorage.removeItem('accessToken');
+          setUser(null);
+          setToken(null);
         }
       } catch (error) {
         console.error("Failed to decode token:", error);
         localStorage.removeItem('accessToken');
+        setUser(null);
+        setToken(null);
       }
+    } else {
+      // No token in storage, ensure states are null
+      setUser(null);
+      setToken(null);
     }
     setIsLoading(false);
   }, []);
@@ -75,10 +81,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email: tokenDto.email,
       role: tokenDto.role,
       userName: tokenDto.userName,
-      // These would ideally come from a /me endpoint after login or be part_of tokenDto
-      firstName: tokenDto.userName, // Placeholder
-      lastName: '', // Placeholder
-      address: '', // Placeholder
+      firstName: tokenDto.userName, 
+      lastName: '', 
+      address: '', 
     });
   };
 
@@ -90,7 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/');
     } catch (error) {
       console.error('Login failed:', error);
-      throw error; // Re-throw to be caught by the form
+      throw error; 
     } finally {
       setIsLoading(false);
     }
@@ -101,10 +106,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const tokenDto = await apiRegister(userData);
       handleAuthResponse(tokenDto);
-      router.push('/'); // Or to a "please verify email" page if applicable
+      router.push('/'); 
     } catch (error) {
       console.error('Registration failed:', error);
-      throw error; // Re-throw
+      throw error; 
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +121,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             await apiSignOut(user.id);
         } catch (error) {
             console.error("Sign out API call failed:", error);
-            // Proceed with client-side logout even if API fails
         }
     }
     localStorage.removeItem('accessToken');
