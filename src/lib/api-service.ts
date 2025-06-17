@@ -81,15 +81,17 @@ async function fetchApi<T>(
       errorData = { messageFromNonJson: textResponse || response.statusText || `Non-JSON error response with status ${response.status}` };
     }
     
-    console.error('API Error:', response.status, errorData || "<No error data parsed>");
-    
-    const defaultApiErrorMsg = `API request failed with status ${response.status}`;
-    const extractedMsg = extractErrorMessage(errorData, defaultApiErrorMsg);
-
+    // Handle AuthError first to prevent generic logging for 401/403
     if (response.status === 401 || response.status === 403) {
       const authErrorMsg = extractErrorMessage(errorData, `Authorization/Authentication error with status ${response.status}`);
       throw new AuthError(authErrorMsg);
     }
+
+    // If not an AuthError, then log and throw generic error
+    console.error('API Error:', response.status, errorData || "<No error data parsed>");
+    
+    const defaultApiErrorMsg = `API request failed with status ${response.status}`;
+    const extractedMsg = extractErrorMessage(errorData, defaultApiErrorMsg);
     throw new Error(extractedMsg);
   }
   
@@ -152,3 +154,4 @@ export const updateResponse = (id: string, data: PublicUtilityResponseRequest): 
 
 export const deleteResponse = (id: string): Promise<void> =>
   fetchApi<void>(`/publicutility/${id}`, { method: 'DELETE' });
+
