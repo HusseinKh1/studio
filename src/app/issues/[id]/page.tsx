@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { getIssueById, getResponsesByIssueId, updateIssueStatus, addResponse, updateResponse as apiUpdateResponse, deleteResponse as apiDeleteResponse, AuthError } from '@/lib/api-service';
 import type { RoadSurfaceIssueDto, PublicUtilityResponseDto, PublicUtilityResponseRequest } from '@/types/api';
-import { IssueStatus } from '@/types/api'; // Changed: IssueStatus imported as a value
+import { IssueStatus } from '@/types/api';
 import ProtectedRoute from '@/components/auth/protected-route';
 import ResponseCard from '@/components/response-card';
 import { Button } from '@/components/ui/button';
@@ -68,7 +68,7 @@ function IssueDetailPageContent() {
     try {
       const [issueData, responsesData] = await Promise.all([
         getIssueById(id),
-        getResponsesByIssueId(id).catch(() => []), 
+        getResponsesByIssueId(id), // Removed .catch(() => []) to allow AuthError to propagate
       ]);
       setIssue(issueData);
       setResponses(responsesData);

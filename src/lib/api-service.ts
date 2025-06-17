@@ -60,13 +60,14 @@ async function fetchApi<T>(
     headers,
   });
 
-  if (!response.ok) {
-    // Specific handling for 404 on getIssuesByUserId: return empty array as it's a valid "not found" scenario for user's issues.
-    // This check is now BEFORE general error parsing and logging for this specific case.
-    if (response.status === 404 && endpoint.startsWith('/roadsurfaceissue/user/')) {
-      return [] as T; 
-    }
+  // Specific handling for 404 on certain "not found" scenarios which are not errors
+  if (response.status === 404 && 
+      (endpoint.startsWith('/roadsurfaceissue/user/') || endpoint.startsWith('/publicutility/issue/'))
+     ) {
+    return [] as T; 
+  }
 
+  if (!response.ok) {
     let errorData: any = null;
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
@@ -130,7 +131,7 @@ export const updateIssue = (id: string, data: Partial<RoadSurfaceIssueRequest>):
   fetchApi<void>(`/roadsurfaceissue/${id}`, { method: 'PUT', body: JSON.stringify(data) });
   
 export const updateIssueStatus = (id: string, status: IssueStatus): Promise<void> => 
-  updateIssue(id, { status }); // Changed to use the general updateIssue endpoint
+  updateIssue(id, { status });
 
 
 export const deleteIssue = (id: string): Promise<void> =>
