@@ -117,7 +117,10 @@ function AdminDashboardPageContent() {
         };
         await updateIssue(issue.id, requestData);
         toast({ title: "Status Updated", description: `Issue status changed to ${newStatus}.` });
-        fetchIssues(); 
+        
+        // Update local state directly for immediate UI feedback
+        setIssues(prev => prev.map(i => (i.id === issue.id ? { ...i, status: newStatus } : i)));
+
     } catch (err: any) {
         if (err instanceof AuthError) {
           toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
@@ -206,7 +209,7 @@ function AdminDashboardPageContent() {
                         )}
                         aria-label={`Status of issue ${issue.id}`}
                       >
-                         <SelectValue />
+                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>
                         {Object.values(IssueStatus).map(s => <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>)}
