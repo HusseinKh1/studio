@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { getIssueById, getResponsesByIssueId, updateIssueStatus, addResponse, updateResponse as apiUpdateResponse, deleteResponse as apiDeleteResponse, AuthError } from '@/lib/api-service';
-import type { RoadSurfaceIssueDto, PublicUtilityResponseDto, PublicUtilityResponseRequest } from '@/types/api';
+import { getIssueById, getResponsesByIssueId, updateIssue, addResponse, updateResponse as apiUpdateResponse, deleteResponse as apiDeleteResponse, AuthError } from '@/lib/api-service';
+import type { RoadSurfaceIssueDto, PublicUtilityResponseDto, PublicUtilityResponseRequest, RoadSurfaceIssueRequest } from '@/types/api';
 import { IssueStatus } from '@/types/api';
 import ProtectedRoute from '@/components/auth/protected-route';
 import ResponseCard from '@/components/response-card';
@@ -102,7 +102,13 @@ function IssueDetailPageContent() {
   const handleStatusChange = async (newStatus: IssueStatus) => {
     if (!issue) return;
     try {
-      await updateIssueStatus(issue.id, newStatus);
+      const requestData: RoadSurfaceIssueRequest = {
+        description: issue.description,
+        location: issue.location,
+        reportedByUserId: issue.reportedByUserId,
+        status: newStatus,
+      };
+      await updateIssue(issue.id, requestData);
       setIssue({ ...issue, status: newStatus });
       toast({ title: "Status Updated", description: `Issue status changed to ${newStatus}.` });
     } catch (err: any) {

@@ -2,8 +2,8 @@
 "use client";
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { getAllIssues, deleteIssue as apiDeleteIssue, updateIssueStatus, AuthError } from '@/lib/api-service';
-import type { RoadSurfaceIssueDto } from '@/types/api'; 
+import { getAllIssues, deleteIssue as apiDeleteIssue, updateIssue, AuthError } from '@/lib/api-service';
+import type { RoadSurfaceIssueDto, RoadSurfaceIssueRequest } from '@/types/api'; 
 import { IssueStatus } from '@/types/api';
 import ProtectedRoute from '@/components/auth/protected-route';
 import { Loader2, AlertTriangle, Edit, Trash2, Eye, Filter } from 'lucide-react';
@@ -58,7 +58,9 @@ function AdminDashboardPageContent() {
         toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
         logout();
       } else {
-        console.error("Failed to fetch issues:", err);
+        if (!(err instanceof AuthError)) {
+          console.error("Failed to fetch issues:", err);
+        }
         setError(err.message || "Could not load issues.");
       }
     } finally {
@@ -100,9 +102,15 @@ function AdminDashboardPageContent() {
     }
   };
   
-  const handleUpdateStatus = async (issueId: string, newStatus: IssueStatus) => {
+  const handleUpdateStatus = async (issue: RoadSurfaceIssueDto, newStatus: IssueStatus) => {
     try {
-        await updateIssueStatus(issueId, newStatus);
+        const requestData: RoadSurfaceIssueRequest = {
+            description: issue.description,
+            location: issue.location,
+            reportedByUserId: issue.reportedByUserId,
+            status: newStatus,
+        };
+        await updateIssue(issue.id, requestData);
         toast({ title: "Status Updated", description: `Issue status changed to ${newStatus}.` });
         fetchIssues(); 
     } catch (err: any) {
@@ -176,7 +184,7 @@ function AdminDashboardPageContent() {
                   <TableCell className="font-medium truncate max-w-xs" title={issue.description}>{issue.description}</TableCell>
                   <TableCell className="truncate max-w-xs" title={issue.location}>{issue.location}</TableCell>
                   <TableCell>
-                    <Select defaultValue={issue.status} onValueChange={(newStatus) => handleUpdateStatus(issue.id, newStatus as IssueStatus)}>
+                    <Select defaultValue={issue.status} onValueChange={(newStatus) => handleUpdateStatus(issue, newStatus as IssueStatus)}>
                         <SelectTrigger className="w-[130px] h-8 text-xs [&_svg]:size-3" aria-label={`Status of issue ${issue.id}`}>
                            <Badge variant={getStatusVariant(issue.status)} className="text-xs px-1.5 py-0.5">
                              <SelectValue />
@@ -233,4 +241,3 @@ export default function AdminDashboardPage() {
     </ProtectedRoute>
   );
 }
-

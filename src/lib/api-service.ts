@@ -129,12 +129,8 @@ export const getIssuesByUserId = (userId: string): Promise<RoadSurfaceIssueDto[]
 export const addIssue = (data: RoadSurfaceIssueRequest): Promise<RoadSurfaceIssueDto> => 
   fetchApi<RoadSurfaceIssueDto>('/roadsurfaceissue', { method: 'POST', body: JSON.stringify(data) });
 
-export const updateIssue = (id: string, data: Partial<RoadSurfaceIssueRequest>): Promise<void> =>
+export const updateIssue = (id: string, data: RoadSurfaceIssueRequest): Promise<void> =>
   fetchApi<void>(`/roadsurfaceissue/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-  
-export const updateIssueStatus = (id: string, status: IssueStatus): Promise<void> => 
-  updateIssue(id, { status });
-
 
 export const deleteIssue = (id: string): Promise<void> =>
   fetchApi<void>(`/roadsurfaceissue/${id}`, { method: 'DELETE' });
@@ -154,4 +150,3 @@ export const updateResponse = (id: string, data: PublicUtilityResponseRequest): 
 
 export const deleteResponse = (id: string): Promise<void> =>
   fetchApi<void>(`/publicutility/${id}`, { method: 'DELETE' });
-
