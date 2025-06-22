@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { getIssueById, getResponsesByIssueId, updateIssue, addResponse, updateResponse as apiUpdateResponse, deleteResponse as apiDeleteResponse, AuthError } from '@/lib/api-service';
 import type { RoadSurfaceIssueDto, PublicUtilityResponseDto, PublicUtilityResponseRequest, RoadSurfaceIssueRequest } from '@/types/api';
@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertTriangle, MapPin, CalendarDays, MessageSquare, Edit3, Trash2, PlusCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { cn } from '@/lib/utils';
 
 
 const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destructive" | "outline" => {
@@ -44,7 +45,6 @@ function IssueDetailPageContent() {
   const id = params?.id as string;
   const { user, isAdmin, logout } = useAuth();
   const { toast } = useToast();
-  const router = useRouter();
 
   const [issue, setIssue] = useState<RoadSurfaceIssueDto | null>(null);
   const [responses, setResponses] = useState<PublicUtilityResponseDto[]>([]);
@@ -196,7 +196,31 @@ function IssueDetailPageContent() {
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
             <CardTitle className="text-2xl md:text-3xl font-headline text-primary flex-grow">{issue.description}</CardTitle>
-            <Badge variant={getStatusVariant(issue.status)} className="text-sm px-3 py-1 self-start md:self-center">{issue.status}</Badge>
+            {isAdmin() ? (
+              <Select 
+                value={issue.status} 
+                onValueChange={(newStatus) => {
+                  if (newStatus !== issue.status) {
+                    setStatusChangeInfo({ newStatus: newStatus as IssueStatus })
+                  }
+                }}
+              >
+                <SelectTrigger className={cn(
+                    badgeVariants({ variant: getStatusVariant(issue.status) }),
+                    "w-auto h-auto px-3 py-1 text-sm focus:ring-0 focus:ring-offset-0 capitalize border-transparent self-start md:self-center",
+                    "data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2"
+                  )}
+                  aria-label={`Status of issue ${issue.id}`}
+                >
+                   <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(IssueStatus).map(s => <SelectItem key={s} value={s} className="text-sm capitalize">{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Badge variant={getStatusVariant(issue.status)} className="text-sm px-3 py-1 self-start md:self-center">{issue.status}</Badge>
+            )}
           </div>
           <CardDescription className="text-sm text-muted-foreground pt-2">
             <div className="flex items-center mb-1"><MapPin className="mr-2 h-4 w-4" /> {issue.location}</div>
@@ -204,26 +228,6 @@ function IssueDetailPageContent() {
              {issue.reportedByUser && <div className="flex items-center mt-1">By: {issue.reportedByUser.userName} ({issue.reportedByUser.email})</div>}
           </CardDescription>
         </CardHeader>
-        {isAdmin() && (
-          <CardContent>
-            <Label htmlFor="status" className="text-sm font-medium">Update Status:</Label>
-            <Select 
-              value={issue.status} 
-              onValueChange={(value) => {
-                if (value !== issue.status) {
-                  setStatusChangeInfo({ newStatus: value as IssueStatus })
-                }
-              }}
-            >
-              <SelectTrigger className="w-full md:w-[200px] mt-1">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(IssueStatus).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        )}
       </Card>
       
       {/* Status Change Confirmation Dialog */}
