@@ -1,6 +1,6 @@
 
 "use client";
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, use } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { getIssueById, getResponsesByIssueId, updateIssue, addResponse, updateResponse as apiUpdateResponse, deleteResponse as apiDeleteResponse, AuthError } from '@/lib/api-service';
@@ -26,7 +26,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 
@@ -42,7 +41,7 @@ const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destr
 
 
 function IssueDetailPageContent() {
-  const params = useParams();
+  const params = use(useParams());
   const id = params?.id as string;
   const { user, isAdmin, logout } = useAuth();
   const { toast } = useToast();
@@ -59,6 +58,7 @@ function IssueDetailPageContent() {
   const [editingComment, setEditingComment] = useState("");
   const [showAddResponseDialog, setShowAddResponseDialog] = useState(false);
   const [showEditResponseDialog, setShowEditResponseDialog] = useState(false);
+  const [statusChangeInfo, setStatusChangeInfo] = useState<{ newStatus: IssueStatus } | null>(null);
 
 
   const fetchIssueData = useCallback(async () => {
@@ -99,22 +99,24 @@ function IssueDetailPageContent() {
     return false;
   }, [logout, toast]);
 
-  const handleStatusChange = async (newStatus: IssueStatus) => {
-    if (!issue) return;
+  const confirmStatusUpdate = async () => {
+    if (!issue || !statusChangeInfo) return;
     try {
       const requestData: RoadSurfaceIssueRequest = {
         description: issue.description,
         location: issue.location,
         reportedByUserId: issue.reportedByUserId,
-        status: newStatus,
+        status: statusChangeInfo.newStatus,
       };
       await updateIssue(issue.id, requestData);
-      setIssue({ ...issue, status: newStatus });
-      toast({ title: "Status Updated", description: `Issue status changed to ${newStatus}.` });
+      setIssue({ ...issue, status: statusChangeInfo.newStatus });
+      toast({ title: "Status Updated", description: `Issue status changed to ${statusChangeInfo.newStatus}.` });
     } catch (err: any) {
       if (!handleAuthError(err)) {
         toast({ title: "Update Failed", description: err.message || "Could not update status.", variant: "destructive" });
       }
+    } finally {
+      setStatusChangeInfo(null);
     }
   };
 
@@ -204,7 +206,14 @@ function IssueDetailPageContent() {
         {isAdmin() && (
           <CardContent>
             <Label htmlFor="status" className="text-sm font-medium">Update Status:</Label>
-            <Select value={issue.status} onValueChange={(value) => handleStatusChange(value as IssueStatus)}>
+            <Select 
+              value={issue.status} 
+              onValueChange={(value) => {
+                if (value !== issue.status) {
+                  setStatusChangeInfo({ newStatus: value as IssueStatus })
+                }
+              }}
+            >
               <SelectTrigger className="w-full md:w-[200px] mt-1">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
@@ -215,6 +224,27 @@ function IssueDetailPageContent() {
           </CardContent>
         )}
       </Card>
+      
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={!!statusChangeInfo} onOpenChange={(isOpen) => !isOpen && setStatusChangeInfo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to change the status from 
+              <span className="font-semibold mx-1">{issue.status}</span> to 
+              <span className="font-semibold ml-1">{statusChangeInfo?.newStatus}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setStatusChangeInfo(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusUpdate}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <h2 className="text-2xl font-headline font-semibold text-primary mb-4 flex justify-between items-center">
         Public Utility Responses

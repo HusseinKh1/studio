@@ -10,7 +10,7 @@ import { Loader2, AlertTriangle, Edit, Trash2, Eye, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -22,11 +22,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
@@ -46,6 +46,7 @@ function AdminDashboardPageContent() {
   const { logout } = useAuth();
   const [statusFilter, setStatusFilter] = useState<IssueStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusChangeInfo, setStatusChangeInfo] = useState<{ issue: RoadSurfaceIssueDto; newStatus: IssueStatus } | null>(null);
 
   const fetchIssues = useCallback(async () => {
     setIsLoading(true);
@@ -102,7 +103,10 @@ function AdminDashboardPageContent() {
     }
   };
   
-  const handleUpdateStatus = async (issue: RoadSurfaceIssueDto, newStatus: IssueStatus) => {
+  const confirmStatusUpdate = async () => {
+    if (!statusChangeInfo) return;
+    const { issue, newStatus } = statusChangeInfo;
+
     try {
         const requestData: RoadSurfaceIssueRequest = {
             description: issue.description,
@@ -120,6 +124,8 @@ function AdminDashboardPageContent() {
         } else {
           toast({ title: "Update Failed", description: err.message || "Could not update status.", variant: "destructive" });
         }
+    } finally {
+      setStatusChangeInfo(null);
     }
   };
 
@@ -184,15 +190,26 @@ function AdminDashboardPageContent() {
                   <TableCell className="font-medium truncate max-w-xs" title={issue.description}>{issue.description}</TableCell>
                   <TableCell className="truncate max-w-xs" title={issue.location}>{issue.location}</TableCell>
                   <TableCell>
-                    <Select value={issue.status} onValueChange={(newStatus) => handleUpdateStatus(issue, newStatus as IssueStatus)}>
-                        <SelectTrigger className="w-[130px] h-8 text-xs [&_svg]:size-3" aria-label={`Status of issue ${issue.id}`}>
-                           <Badge variant={getStatusVariant(issue.status)} className="text-xs px-1.5 py-0.5">
-                             <SelectValue />
-                           </Badge>
-                        </SelectTrigger>
-                        <SelectContent>
-                            {Object.values(IssueStatus).map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}
-                        </SelectContent>
+                    <Select 
+                      value={issue.status} 
+                      onValueChange={(newStatus) => {
+                        if (newStatus !== issue.status) {
+                          setStatusChangeInfo({ issue, newStatus: newStatus as IssueStatus })
+                        }
+                      }}
+                    >
+                      <SelectTrigger className={cn(
+                          badgeVariants({ variant: getStatusVariant(issue.status) }),
+                          "w-[130px] h-8 text-xs focus:ring-0 focus:ring-offset-0 capitalize border-transparent",
+                          "data-[state=open]:ring-2 data-[state=open]:ring-ring data-[state=open]:ring-offset-2"
+                        )}
+                        aria-label={`Status of issue ${issue.id}`}
+                      >
+                         <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(IssueStatus).map(s => <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </TableCell>
                   <TableCell>{issue.reportedDate ? format(parseISO(issue.reportedDate), "PP") : "N/A"}</TableCell>
@@ -230,6 +247,27 @@ function AdminDashboardPageContent() {
           </Table>
         </div>
       )}
+
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={!!statusChangeInfo} onOpenChange={(isOpen) => !isOpen && setStatusChangeInfo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to change the status from 
+              <span className="font-semibold mx-1">{statusChangeInfo?.issue.status}</span> to 
+              <span className="font-semibold ml-1">{statusChangeInfo?.newStatus}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setStatusChangeInfo(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusUpdate}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
