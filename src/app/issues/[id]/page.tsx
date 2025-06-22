@@ -1,6 +1,5 @@
-
 "use client";
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { getIssueById, getResponsesByIssueId, updateIssue, addResponse, updateResponse as apiUpdateResponse, deleteResponse as apiDeleteResponse, AuthError } from '@/lib/api-service';
@@ -41,7 +40,7 @@ const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destr
 
 
 function IssueDetailPageContent() {
-  const params = use(useParams());
+  const params = useParams();
   const id = params?.id as string;
   const { user, isAdmin, logout } = useAuth();
   const { toast } = useToast();
@@ -76,8 +75,10 @@ function IssueDetailPageContent() {
       if (err instanceof AuthError) {
         toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
         logout();
-      } else if (!(err instanceof AuthError)) {
-        setError(err.message || "Could not load issue details.");
+      } else {
+        if (!(err instanceof AuthError)) {
+          setError(err.message || "Could not load issue details.");
+        }
       }
     } finally {
       setIsLoading(false);
