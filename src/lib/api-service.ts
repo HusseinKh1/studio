@@ -1,4 +1,5 @@
 
+import { IssueStatus } from '@/types/api';
 import type {
   TokenDto,
   UserLoginRequest,
@@ -7,7 +8,6 @@ import type {
   RoadSurfaceIssueRequest,
   PublicUtilityResponseDto,
   PublicUtilityResponseRequest,
-  IssueStatus,
 } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7280/api';
@@ -18,6 +18,26 @@ export class AuthError extends Error {
     this.name = "AuthError";
   }
 }
+
+// Helper map to convert numeric status from API to string enum
+const issueStatusMap: { [key: number]: IssueStatus } = {
+  0: IssueStatus.Reported,
+  1: IssueStatus.InProgress,
+  2: IssueStatus.Resolved,
+};
+
+// Helper function to transform a raw issue object from the API
+function transformRawIssue(rawIssue: any): RoadSurfaceIssueDto {
+  if (rawIssue && typeof rawIssue.status === 'number') {
+    return {
+      ...rawIssue,
+      status: issueStatusMap[rawIssue.status] ?? IssueStatus.Reported,
+    };
+  }
+  // If status is not a number, assume it's already in the correct string format.
+  return rawIssue as RoadSurfaceIssueDto;
+}
+
 
 function extractErrorMessage(data: any, defaultMessage: string): string {
   if (!data) return defaultMessage;
@@ -117,14 +137,20 @@ export const signOutUser = (userId: string): Promise<void> =>
   fetchApi<void>(`/auth/sign-out/${userId}`, { method: 'POST' });
 
 // Road Surface Issue Endpoints
-export const getAllIssues = (): Promise<RoadSurfaceIssueDto[]> =>
-  fetchApi<RoadSurfaceIssueDto[]>('/roadsurfaceissue');
+export const getAllIssues = async (): Promise<RoadSurfaceIssueDto[]> => {
+    const rawIssues = await fetchApi<any[]>('/roadsurfaceissue');
+    return rawIssues.map(transformRawIssue);
+}
 
-export const getIssueById = (id: string): Promise<RoadSurfaceIssueDto> =>
-  fetchApi<RoadSurfaceIssueDto>(`/roadsurfaceissue/${id}`);
+export const getIssueById = async (id: string): Promise<RoadSurfaceIssueDto> => {
+    const rawIssue = await fetchApi<any>(`/roadsurfaceissue/${id}`);
+    return transformRawIssue(rawIssue);
+}
 
-export const getIssuesByUserId = (userId: string): Promise<RoadSurfaceIssueDto[]> =>
-  fetchApi<RoadSurfaceIssueDto[]>(`/roadsurfaceissue/user/${userId}`);
+export const getIssuesByUserId = async (userId: string): Promise<RoadSurfaceIssueDto[]> => {
+    const rawIssues = await fetchApi<any[]>(`/roadsurfaceissue/user/${userId}`);
+    return rawIssues.map(transformRawIssue);
+}
 
 export const addIssue = (data: RoadSurfaceIssueRequest): Promise<RoadSurfaceIssueDto> => 
   fetchApi<RoadSurfaceIssueDto>('/roadsurfaceissue', { method: 'POST', body: JSON.stringify(data) });
@@ -135,8 +161,10 @@ export const updateIssue = (id: string, data: RoadSurfaceIssueRequest): Promise<
 export const deleteIssue = (id: string): Promise<void> =>
   fetchApi<void>(`/roadsurfaceissue/${id}`, { method: 'DELETE' });
 
-export const getIssuesByStatus = (status: IssueStatus): Promise<RoadSurfaceIssueDto[]> =>
-  fetchApi<RoadSurfaceIssueDto[]>(`/roadsurfaceissue/status/${status}`);
+export const getIssuesByStatus = async (status: IssueStatus): Promise<RoadSurfaceIssueDto[]> => {
+    const rawIssues = await fetchApi<any[]>(`/roadsurfaceissue/status/${status}`);
+    return rawIssues.map(transformRawIssue);
+}
 
 // Public Utility Response Endpoints
 export const getResponsesByIssueId = (issueId: string): Promise<PublicUtilityResponseDto[]> =>
