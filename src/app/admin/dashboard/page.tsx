@@ -184,7 +184,7 @@ function AdminDashboardPageContent() {
                   <TableCell className="font-medium truncate max-w-xs" title={issue.description}>{issue.description}</TableCell>
                   <TableCell className="truncate max-w-xs" title={issue.location}>{issue.location}</TableCell>
                   <TableCell>
-                    <Select defaultValue={issue.status} onValueChange={(newStatus) => handleUpdateStatus(issue, newStatus as IssueStatus)}>
+                    <Select value={issue.status} onValueChange={(newStatus) => handleUpdateStatus(issue, newStatus as IssueStatus)}>
                         <SelectTrigger className="w-[130px] h-8 text-xs [&_svg]:size-3" aria-label={`Status of issue ${issue.id}`}>
                            <Badge variant={getStatusVariant(issue.status)} className="text-xs px-1.5 py-0.5">
                              <SelectValue />

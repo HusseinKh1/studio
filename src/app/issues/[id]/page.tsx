@@ -43,6 +43,7 @@ const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destr
 
 function IssueDetailPageContent() {
   const params = useParams();
+  const id = params?.id as string;
   const { user, isAdmin, logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -61,7 +62,6 @@ function IssueDetailPageContent() {
 
 
   const fetchIssueData = useCallback(async () => {
-    const id = params?.id as string;
     if (!id) return;
     setIsLoading(true);
     setError(null);
@@ -82,13 +82,13 @@ function IssueDetailPageContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [params, logout, toast]);
+  }, [id, logout, toast]);
   
   useEffect(() => {
-    if (params?.id) {
+    if (id) {
         fetchIssueData();
     }
-  }, [params, fetchIssueData]);
+  }, [id, fetchIssueData]);
 
   const handleAuthError = useCallback((err: any) => {
     if (err instanceof AuthError) {
@@ -204,7 +204,7 @@ function IssueDetailPageContent() {
         {isAdmin() && (
           <CardContent>
             <Label htmlFor="status" className="text-sm font-medium">Update Status:</Label>
-            <Select defaultValue={issue.status} onValueChange={(value) => handleStatusChange(value as IssueStatus)}>
+            <Select value={issue.status} onValueChange={(value) => handleStatusChange(value as IssueStatus)}>
               <SelectTrigger className="w-full md:w-[200px] mt-1">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
