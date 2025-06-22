@@ -43,7 +43,6 @@ const getStatusVariant = (status: IssueStatus): "default" | "secondary" | "destr
 
 function IssueDetailPageContent() {
   const params = useParams();
-  const id = params.id as string;
   const { user, isAdmin, logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -62,6 +61,7 @@ function IssueDetailPageContent() {
 
 
   const fetchIssueData = useCallback(async () => {
+    const id = params?.id as string;
     if (!id) return;
     setIsLoading(true);
     setError(null);
@@ -76,18 +76,19 @@ function IssueDetailPageContent() {
       if (err instanceof AuthError) {
         toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
         logout();
-      } else {
-        console.error("Failed to fetch issue details:", err);
+      } else if (!(err instanceof AuthError)) {
         setError(err.message || "Could not load issue details.");
       }
     } finally {
       setIsLoading(false);
     }
-  }, [id, logout, toast]);
+  }, [params, logout, toast]);
   
   useEffect(() => {
-    fetchIssueData();
-  }, [fetchIssueData]);
+    if (params?.id) {
+        fetchIssueData();
+    }
+  }, [params, fetchIssueData]);
 
   const handleAuthError = useCallback((err: any) => {
     if (err instanceof AuthError) {
@@ -309,4 +310,3 @@ export default function IssueDetailPage() {
     </ProtectedRoute>
   );
 }
-
